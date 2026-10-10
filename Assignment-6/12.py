@@ -111,6 +111,33 @@ class PowerMethodApp:
         self.root.minsize(1180, 760)
         self.root.configure(bg=self.BG)
 
+        # Scrollable application area (keeps the existing UI unchanged)
+        self.main_canvas = tk.Canvas(self.root, bg=self.BG, highlightthickness=0)
+        self.vertical_scrollbar = ttk.Scrollbar(
+            self.root, orient="vertical", command=self.main_canvas.yview
+        )
+        self.main_canvas.configure(yscrollcommand=self.vertical_scrollbar.set)
+        self.vertical_scrollbar.pack(side="right", fill="y")
+        self.main_canvas.pack(side="left", fill="both", expand=True)
+
+        self.content_frame = tk.Frame(self.main_canvas, bg=self.BG)
+        self.content_window = self.main_canvas.create_window(
+            (0, 0), window=self.content_frame, anchor="nw"
+        )
+        self.content_frame.bind(
+            "<Configure>",
+            lambda event: self.main_canvas.configure(
+                scrollregion=self.main_canvas.bbox("all")
+            ),
+        )
+        self.main_canvas.bind(
+            "<Configure>",
+            lambda event: self.main_canvas.itemconfigure(
+                self.content_window, width=event.width
+            ),
+        )
+        self.main_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
         self.matrix_entries = []
         self.history = []
         self.current_A = None
@@ -124,6 +151,9 @@ class PowerMethodApp:
         self._setup_style()
         self._build_ui()
         self.create_matrix()
+
+    def _on_mousewheel(self, event):
+        self.main_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     # --------------------------------------------------------
     # STYLE
@@ -288,7 +318,7 @@ class PowerMethodApp:
     # --------------------------------------------------------
 
     def _build_ui(self):
-        header = tk.Frame(self.root, bg=self.BG)
+        header = tk.Frame(self.content_frame, bg=self.BG)
         header.pack(fill="x", padx=26, pady=(20, 12))
 
         left_title = tk.Frame(header, bg=self.BG)
@@ -325,7 +355,7 @@ class PowerMethodApp:
         )
         self.status_badge.pack(side="right", pady=8)
 
-        body = tk.Frame(self.root, bg=self.BG)
+        body = tk.Frame(self.content_frame, bg=self.BG)
         body.pack(fill="both", expand=True, padx=26, pady=(0, 22))
 
         # Sidebar
